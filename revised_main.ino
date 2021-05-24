@@ -20,6 +20,7 @@ int motor_Speed = 150; //default motor speed
 int motor_State = BRAKE; //default motor state
 
 const int EN_PIN_1 = A0; //TODO:: check what these pins alter on the motor shield!
+// definitely remove one of these throughout the whole code, ig testing is the easiest solution to find out lmao
 const int EN_PIN_2 = A1; //TODO:: check what these pins alter on the motor shield!
 
 char readString[4];

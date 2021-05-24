@@ -42,7 +42,11 @@ const int S_SENS_LEFT_PIN = 10; // Left Side Sensor
 const int S_SENS_RIGHT_PIN = 11; // Right Side Sensor
 //------------------------------------Steering---------------------------------------------------
 const int STEER_SERVO_PIN = A2;
-int servo_angle; //steering direction of vehicle
+const int turn_angle = 10;
+const int turn_delay = 50;
+int servo_angle; //current steering direction of vehicle
+
+
 
 //===============================================================================================
 //-------------------------------------SET UP----------------------------------------------------
@@ -98,7 +102,45 @@ void setup() {
 //--------------------------------------LOOP------------------------------------------------------
 //================================================================================================
 void loop() {
-  // TODO:: devise autonomous algorithm using prepared functions
+  if(L_SENS_LEFT_PIN)==LOW&&digitalRead(L_SENS_MID_PIN)==HIGH&&digitalRead(L_SENS_RIGHT_PIN)==LOW){ //normal driving speed
+    motor_State = FORWARD;
+    Motor_Cmd(motor_State, 50);
+  }
+  else if(L_SENS_LEFT_PIN)==HIGH&&digitalRead(L_SENS_MID_PIN)==HIGH&&digitalRead(L_SENS_RIGHT_PIN)==HIGH){ //reached end of race
+    motor_State = BRAKE;
+    Motor_Cmd(motor_State, 0);
+    Serial.println("CAR Stop");
+  }
+  else if(L_SENS_LEFT_PIN)==HIGH&&digitalRead(L_SENS_MID_PIN)==LOW&&digitalRead(L_SENS_RIGHT_PIN)==LOW){ //too right
+    Motor_Cmd(motor_State, 24); //slow down
+    turn_left(turn_angle);
+    Serial.println("Turn Left");
+  }
+  else if(L_SENS_LEFT_PIN)==LOW&&digitalRead(L_SENS_MID_PIN)==LOW&&digitalRead(L_SENS_RIGHT_PIN)==HIGH){ //too left
+    Motor_Cmd(motor_State, 24); //slow down
+    turn_right(turn_angle);
+    Serial.println("Turn Right");
+  }
+  else if(check_LIDAR()<50){ //avoid obstical
+    Serial.println("Avoiding Obstical...");
+    Motor_Cmd(motor_State, 24); //slow down
+      
+    turn_right(turn_angle);
+    delay(turn_delay);
+    turn_left(turn_angle);
+    
+    check_passed();
+
+    turn_left(turn_angle);
+    while(digitalRead(L_SENS_LEFT_PIN)!=HIGH);
+    turn_right(turn_angle);
+    Serial.println("Avoided Obstical");
+  }
+  else(){ //no statement was called
+    motor_State = BRAKE;
+    Motor_Cmd(motor_State, 0);
+    Serial.println("Fall-through Error");
+  }
 }
 
 
@@ -192,8 +234,9 @@ void turn_left(int degree){
 //===============================================================================================
 //------------------------------OBSTICAL Functions-----------------------------------------------
 //===============================================================================================
-bool check_passed(){
-  //TODO:: write code for if car has passed obstical (using side sensors)
+bool check_passed(){ //only works for right-avoition
+  if(digitalRead(S_SENS_LEFT_PIN)==HIGH) return true;
+  else return false;
 }
 bool check_obstical(){
  if(check_LIDAR()<=20) return true;
@@ -217,7 +260,7 @@ bool check_obstical(){
 //--------------------------------LINE Functions-------------------------------------------------
 //===============================================================================================
 bool check_line(){
-  if(digitalRead(L_SENS_LEFT_PIN)==HIGH&&digitalRead(L_SENS_MID_PIN)==LOW&&digitalRead(L_SENS_RIGHT_PIN)==HIGH){
+  if(digitalRead(L_SENS_LEFT_PIN)==LOW&&digitalRead(L_SENS_MID_PIN)==HIGH&&digitalRead(L_SENS_RIGHT_PIN)==LOW){
     return true;
   }
   return false;
@@ -229,7 +272,7 @@ void search_line(){
   
   while(!check_line()){
     if(!searching_right){ 
-      if(instances==0) turn_left(10);
+      if(instances==0) turn_left(turn_angle);
       delay(100);
       instances++;
       if(instances>=10){
@@ -238,7 +281,7 @@ void search_line(){
       }
     }
     else{
-      if(instances==0) turn_right(10);
+      if(instances==0) turn_right(turn_angle);
       delay(100);
       instances++;
       if(instances>=10){
@@ -252,20 +295,57 @@ void search_line(){
 }
 
 void follow_line(){
-  while(check_line()){
-    delay(100);
+  while(check_line()&&!check_obstical());
+  //decelerate();
+  
+  if(digitalRead(L_SENS_LEFT_PIN)==HIGH){ //correct path left
+    turn_left(turn_angle);
+    
+    if(digitalRead(L_SENS_LEFT_PIN)==LOW){ //return to driving straight
+      turn_right(turn_angle);
+      follow_line();
+    }
+    else{
+      //code for a turn
+    }
+    follow_line();
+    }
+  else if(digitalRead(L_SENS_RIGHT_PIN)==HIGH){ //correct path right
+    turn_right(turn_angle);
+
+    if(digitalRead(L_SENS_RIGHT_PIN)==LOW){ //return to driving straight
+      turn_left(turn_angle);
+      follow_line();
+    }
+    else{
+      //code for a turn
+    }
+    follow_line();
   }
-  if(!check_line());
-  else if(check_obstical());
+  else if(L_SENS_LEFT_PIN)==HIGH&&digitalRead(L_SENS_MID_PIN)==HIGH&&digitalRead(L_SENS_RIGHT_PIN)==HIGH){
+    motor_State = BRAKE;
+    Motor_Cmd(motor_State, 0);
+    Serial.println("Motors Stop");
+  }
+  else{ //avoid obstical
+    turn_right(turn_angle);
+    delay(turn_delay);
+    turn_left(turn_angle);
+    
+    check_passed();
+
+    turn_left(turn_angle);
+    while(digitalRead(L_SENS_LEFT_PIN)!=HIGH);
+    turn_right(turn_angle);
+    //accelerate();
+  }
 }
 
-void return_to_line(){ //TODO:: incorperate function into code
-  if(servo_angle==0) servo_angle=180;
-  else servo_angle = 0;
-
-  if(check_line()) follow_line();
-  else return_to_line();
-}
+//void return_to_line(){ //only works for right avoition
+//  turn_left(10);
+//  while(digitalRead(L_SENS_LEFT_PIN)!=HIGH);
+//  turn_right(10);
+//}
 
 
 

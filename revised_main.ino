@@ -1,7 +1,7 @@
 //===============================================================================================
 //-----------------------------------GOBAL VARS--------------------------------------------------
 //===============================================================================================
-
+#include <Servo.h> 
 //-------------------------------------9dof------------------------------------------------------
 #include "ICM_20948.h"
 #define WIRE_PORT Wire  // Your desired Wire port.(Used when "USE_SPI" is not defined)
@@ -20,7 +20,6 @@ int motor_Speed = 150; //default motor speed
 int motor_State = BRAKE; //default motor state
 
 const int EN_PIN_1 = A0; //TODO:: check what these pins alter on the motor shield!
-// definitely remove one of these throughout the whole code, ig testing is the easiest solution to find out lmao
 const int EN_PIN_2 = A1; //TODO:: check what these pins alter on the motor shield!
 
 char readString[4];
@@ -43,9 +42,10 @@ const int S_SENS_LEFT_PIN = 10; // Left Side Sensor
 const int S_SENS_RIGHT_PIN = 11; // Right Side Sensor
 //------------------------------------Steering---------------------------------------------------
 const int STEER_SERVO_PIN = A2;
+Servo Servo1;
 const int turn_angle = 10;
 const int turn_delay = 50;
-int servo_angle; //current steering direction of vehicle
+int servo_angle = 108; //current steering direction of vehicle
 
 
 
@@ -53,28 +53,28 @@ int servo_angle; //current steering direction of vehicle
 //-------------------------------------SET UP----------------------------------------------------
 //===============================================================================================
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(74880);
   Serial1.begin(115200); //Lidar & 9dof **(if 9dof is problematic try switching it to 9600)**
 
 //-------------------------------------9dof------------------------------------------------------  
-  WIRE_PORT.begin();
-  WIRE_PORT.setClock(400000);
-
-  //myICM.enableDebugging();
-  bool initialized = false;
-  while( !initialized ){
-    myICM.begin( WIRE_PORT, AD0_VAL );
-
-
-    Serial1.print( F("Initialization of the sensor returned: ") );
-    Serial1.println( myICM.statusString() );
-    if( myICM.status != ICM_20948_Stat_Ok ){
-      Serial1.println( "Trying again..." );
-      delay(500);
-    }else{
-      initialized = true;
-    }
-  }
+//  WIRE_PORT.begin();
+//  WIRE_PORT.setClock(400000);
+//
+//  //myICM.enableDebugging();
+//  bool initialized = false;
+//  while( !initialized ){
+//    myICM.begin( WIRE_PORT, AD0_VAL );
+//
+//
+//    Serial.print( F("Initialization of the sensor returned: ") );
+//    Serial.println( myICM.statusString() );
+//    if( myICM.status != ICM_20948_Stat_Ok ){
+//      Serial.println( "Trying again..." );
+//      delay(500);
+//    }else{
+//      initialized = true;
+//    }
+//  }
 //----------------------------------MotorShield--------------------------------------------------
   pinMode(MOTOR_A1_PIN, OUTPUT);
   pinMode(MOTOR_B1_PIN, OUTPUT);
@@ -98,50 +98,97 @@ void setup() {
   pinMode(S_SENS_RIGHT_PIN, INPUT); 
 //------------------------------------Steering---------------------------------------------------
   pinMode(STEER_SERVO_PIN, OUTPUT); 
+  Servo1.attach(STEER_SERVO_PIN); 
 }
 //================================================================================================
 //--------------------------------------LOOP------------------------------------------------------
 //================================================================================================
 void loop() {
-  if(L_SENS_LEFT_PIN)==LOW&&digitalRead(L_SENS_MID_PIN)==HIGH&&digitalRead(L_SENS_RIGHT_PIN)==LOW){ //normal driving speed
-    motor_State = FORWARD;
-    Motor_Cmd(motor_State, 50);
-  }
-  else if(L_SENS_LEFT_PIN)==HIGH&&digitalRead(L_SENS_MID_PIN)==HIGH&&digitalRead(L_SENS_RIGHT_PIN)==HIGH){ //reached end of race
-    motor_State = BRAKE;
-    Motor_Cmd(motor_State, 0);
-    Serial.println("CAR Stop");
-  }
-  else if(L_SENS_LEFT_PIN)==HIGH&&digitalRead(L_SENS_MID_PIN)==LOW&&digitalRead(L_SENS_RIGHT_PIN)==LOW){ //too right
-    Motor_Cmd(motor_State, 24); //slow down
-    turn_left(turn_angle);
-    Serial.println("Turn Left");
-  }
-  else if(L_SENS_LEFT_PIN)==LOW&&digitalRead(L_SENS_MID_PIN)==LOW&&digitalRead(L_SENS_RIGHT_PIN)==HIGH){ //too left
-    Motor_Cmd(motor_State, 24); //slow down
-    turn_right(turn_angle);
-    Serial.println("Turn Right");
-  }
-  else if(check_LIDAR()<50){ //avoid obstical
-    Serial.println("Avoiding Obstical...");
-    Motor_Cmd(motor_State, 24); //slow down
-      
-    turn_right(turn_angle);
-    delay(turn_delay);
-    turn_left(turn_angle);
-    
-    check_passed();
+//Servo1.write(50); //most left
+//delay(1000);
+//
+//Servo1.write(150); //most right
+//delay(1000);
+//
+//Servo1.write(servo_angle); //straight
+//delay(1000);
 
-    turn_left(turn_angle);
-    while(digitalRead(L_SENS_LEFT_PIN)!=HIGH);
-    turn_right(turn_angle);
-    Serial.println("Avoided Obstical");
-  }
-  else(){ //no statement was called
-    motor_State = BRAKE;
-    Motor_Cmd(motor_State, 0);
-    Serial.println("Fall-through Error");
-  }
+//int left = digitalRead(L_SENS_LEFT_PIN);
+//Serial.print("left: ");
+//Serial.println(left);
+//int mid = digitalRead(L_SENS_MID_PIN);
+//Serial.print("mid: ");
+//Serial.println(mid);
+//int right = digitalRead(L_SENS_RIGHT_PIN);
+//Serial.print("right: ");
+//Serial.println(right);
+
+int dista = check_LIDAR();
+Serial.print("dist: ");
+Serial.println(dista);
+delay(10);
+
+//  motor_State = FORWARD;
+//  Motor_Cmd(motor_State, 45);
+//  delay(1000);
+//  Motor_Cmd(motor_State, 35);
+//  delay(6000);
+//  Motor_Cmd(motor_State, 25);
+//  delay(5000);
+//  
+//  Motor_Cmd(motor_State, 45);
+//  delay(1000);
+//  Motor_Cmd(motor_State, 50);
+//  delay(1000);
+//  Motor_Cmd(motor_State, 60);
+//  delay(1000);
+//  Motor_Cmd(motor_State, 26);
+//
+//  Serial.println("Stop/Waiting");
+//  motor_State = BRAKE;
+//  Motor_Cmd(motor_State, 0);
+//  delay(1000);
+//  
+//  
+//  if(L_SENS_LEFT_PIN)==LOW&&digitalRead(L_SENS_MID_PIN)==HIGH&&digitalRead(L_SENS_RIGHT_PIN)==LOW && check_LIDAR()>50){ //normal driving speed
+//    motor_State = FORWARD;
+//    Motor_Cmd(motor_State, 50);
+//  }
+//  else if(L_SENS_LEFT_PIN)==HIGH&&digitalRead(L_SENS_MID_PIN)==HIGH&&digitalRead(L_SENS_RIGHT_PIN)==HIGH && check_LIDAR()>50){ //reached end of race
+//    motor_State = BRAKE;
+//    Motor_Cmd(motor_State, 0);
+//    Serial.println("CAR Stop");
+//  }
+//  else if(L_SENS_LEFT_PIN)==HIGH&&digitalRead(L_SENS_MID_PIN)==LOW&&digitalRead(L_SENS_RIGHT_PIN)==LOW && check_LIDAR()>50){ //too right
+//    Motor_Cmd(motor_State, 26); //slow down
+//    turn_left(turn_angle);
+//    Serial.println("Turn Left");
+//  }
+//  else if(L_SENS_LEFT_PIN)==LOW&&digitalRead(L_SENS_MID_PIN)==LOW&&digitalRead(L_SENS_RIGHT_PIN)==HIGH && check_LIDAR()>50){ //too left
+//    Motor_Cmd(motor_State, 26); //slow down
+//    turn_right(turn_angle);
+//    Serial.println("Turn Right");
+//  }
+//  else if(check_LIDAR()<=50){ //avoid obstical
+//    Serial.println("Avoiding Obstical...");
+//    Motor_Cmd(motor_State, 26); //slow down
+//      
+//    turn_right(turn_angle);
+//    delay(turn_delay);
+//    turn_left(turn_angle);
+//    
+//    check_passed();
+//
+//    turn_left(turn_angle);
+//    while(digitalRead(L_SENS_LEFT_PIN)!=HIGH);
+//    turn_right(turn_angle);
+//    Serial.println("Avoided Obstical");
+//  }
+//  else(){ //no statement was called
+//    motor_State = BRAKE;
+//    Motor_Cmd(motor_State, 0);
+//    Serial.println("Fall-through Error");
+//  }
 }
 
 
@@ -182,14 +229,14 @@ int check_LIDAR()
           dist=uart[2]+uart[3]*256;// calculate distance value
           strength=uart[4]+uart[5]*256;// calculate signal strength value
           
+//          Serial.print("[Lidar] dist = ");
+//          Serial.print(dist);// output LiDAR tests distance value
+//          Serial.print('\t');
+//          Serial.print("strength = ");
+//          Serial.print(strength);// output signal strength value
+//          Serial.print('\n');
+
           return dist;
-          
-//          Serial1.print("[Lidar] dist = ");
-//          Serial1.print(dist);// output LiDAR tests distance value
-//          Serial1.print('\t');
-//          Serial1.print("strength = ");
-//          Serial1.print(strength);// output signal strength value
-//          Serial1.print('\n');
         }
       }
     }
@@ -203,7 +250,7 @@ void check_9DOF()
 //    printScaledAGMT( &myICM );    // This function takes into account the scale settings from when the measurement was made to calculate the values with units
     delay(30);
   }else{
-    Serial1.println("[9dof] Waiting for data");
+    Serial.println("[9dof] Waiting for data");
     delay(500);
   }
 }
@@ -215,22 +262,28 @@ void check_9DOF()
 void turn_right(int degree){
   int new_angle = servo_angle+degree;
   
-  for(int pos=servo_angle; pos<=new_angle; pos++){
-    digitalWrite(STEER_SERVO_PIN, pos);
-    delay(15);
-  }
+//  for(int pos=servo_angle; pos<=new_angle; pos++){
+//    digitalWrite(STEER_SERVO_PIN, pos);
+//    delay(15);
+//  }
+
+  Servo1.write(new_angle);
   
   servo_angle = new_angle;
 }
 void turn_left(int degree){
   int new_angle = servo_angle-degree;
 
-  for(int pos=servo_angle; pos>=new_angle; pos--){
-    digitalWrite(STEER_SERVO_PIN, pos);
-    delay(15);
-  }
-  
+//  for(int pos=servo_angle; pos>=new_angle; pos--){
+//    digitalWrite(STEER_SERVO_PIN, pos);
+//    delay(15);
+//  }
+  Servo1.write(new_angle);
   servo_angle = new_angle;
+}
+void turn_straight(){
+  servo_angle = 108;
+  Servo1.write(servo_angle);
 }
 //===============================================================================================
 //------------------------------OBSTICAL Functions-----------------------------------------------
@@ -240,8 +293,8 @@ bool check_passed(){ //only works for right-avoition
   else return false;
 }
 bool check_obstical(){
- if(check_LIDAR()<=20) return true;
- else return false;
+ //if(check_LIDAR()<=20) return true;
+ //else return false;
  
 /*
   if(obstacle_distance<=20){
@@ -323,7 +376,7 @@ void follow_line(){
     }
     follow_line();
   }
-  else if(L_SENS_LEFT_PIN)==HIGH&&digitalRead(L_SENS_MID_PIN)==HIGH&&digitalRead(L_SENS_RIGHT_PIN)==HIGH){
+  else if((L_SENS_LEFT_PIN)==HIGH&&digitalRead(L_SENS_MID_PIN)==HIGH&&digitalRead(L_SENS_RIGHT_PIN)==HIGH){
     motor_State = BRAKE;
     Motor_Cmd(motor_State, 0);
     Serial.println("Motors Stop");

@@ -43,7 +43,7 @@ const int S_SENS_RIGHT_PIN = 11; // Right Side Sensor
 //------------------------------------Steering---------------------------------------------------
 const int STEER_SERVO_PIN = A2;
 Servo Servo1;
-const int turn_angle = 10;
+const int turn_angle = 5;
 const int turn_delay = 50;
 int servo_angle = 108; //current steering direction of vehicle
 
@@ -123,18 +123,20 @@ void loop() {
 //Serial.print("right: ");
 //Serial.println(right);
 
-int dista = check_LIDAR();
-Serial.print("dist: ");
-Serial.println(dista);
-delay(10);
+//int dista = check_LIDAR();
+//Serial.print("dist: ");
+//Serial.println(dista);
+//delay(10);
 
 //  motor_State = FORWARD;
 //  Motor_Cmd(motor_State, 45);
 //  delay(1000);
 //  Motor_Cmd(motor_State, 35);
 //  delay(6000);
-//  Motor_Cmd(motor_State, 25);
+//  Motor_Cmd(motor_State, 20);
 //  delay(5000);
+//  Motor_Cmd(motor_State, 45);
+//  delay(1000);
 //  
 //  Motor_Cmd(motor_State, 45);
 //  delay(1000);
@@ -150,25 +152,25 @@ delay(10);
 //  delay(1000);
 //  
 //  
-//  if(L_SENS_LEFT_PIN)==LOW&&digitalRead(L_SENS_MID_PIN)==HIGH&&digitalRead(L_SENS_RIGHT_PIN)==LOW && check_LIDAR()>50){ //normal driving speed
-//    motor_State = FORWARD;
-//    Motor_Cmd(motor_State, 50);
-//  }
-//  else if(L_SENS_LEFT_PIN)==HIGH&&digitalRead(L_SENS_MID_PIN)==HIGH&&digitalRead(L_SENS_RIGHT_PIN)==HIGH && check_LIDAR()>50){ //reached end of race
-//    motor_State = BRAKE;
-//    Motor_Cmd(motor_State, 0);
-//    Serial.println("CAR Stop");
-//  }
-//  else if(L_SENS_LEFT_PIN)==HIGH&&digitalRead(L_SENS_MID_PIN)==LOW&&digitalRead(L_SENS_RIGHT_PIN)==LOW && check_LIDAR()>50){ //too right
-//    Motor_Cmd(motor_State, 26); //slow down
-//    turn_left(turn_angle);
-//    Serial.println("Turn Left");
-//  }
-//  else if(L_SENS_LEFT_PIN)==LOW&&digitalRead(L_SENS_MID_PIN)==LOW&&digitalRead(L_SENS_RIGHT_PIN)==HIGH && check_LIDAR()>50){ //too left
-//    Motor_Cmd(motor_State, 26); //slow down
-//    turn_right(turn_angle);
-//    Serial.println("Turn Right");
-//  }
+  if(digitalRead(L_SENS_LEFT_PIN)==HIGH&&digitalRead(L_SENS_MID_PIN)==LOW&&digitalRead(L_SENS_RIGHT_PIN)==HIGH){// && check_LIDAR()>50){ //normal driving speed
+    motor_State = FORWARD;
+    Motor_Cmd(motor_State, 50);
+  }
+  else if(digitalRead(L_SENS_LEFT_PIN)==LOW&&digitalRead(L_SENS_MID_PIN)==LOW&&digitalRead(L_SENS_RIGHT_PIN)==LOW){// && check_LIDAR()>50){ //reached end of race
+    motor_State = BRAKE;
+    Motor_Cmd(motor_State, 0);
+    Serial.println("CAR Stop");
+  }
+  else if(digitalRead(L_SENS_LEFT_PIN)==LOW&&digitalRead(L_SENS_MID_PIN)==HIGH&&digitalRead(L_SENS_RIGHT_PIN)==HIGH){// && check_LIDAR()>50){ //too right
+    Motor_Cmd(motor_State, 26); //slow down
+    turn_left(turn_angle);
+    Serial.println("Turn Left");
+  }
+  else if(digitalRead(L_SENS_LEFT_PIN)==HIGH&&digitalRead(L_SENS_MID_PIN)==HIGH&&digitalRead(L_SENS_RIGHT_PIN)==LOW){// && check_LIDAR()>50){ //too left
+    Motor_Cmd(motor_State, 26); //slow down
+    turn_right(turn_angle);
+    Serial.println("Turn Right");
+  }
 //  else if(check_LIDAR()<=50){ //avoid obstical
 //    Serial.println("Avoiding Obstical...");
 //    Motor_Cmd(motor_State, 26); //slow down
@@ -184,11 +186,11 @@ delay(10);
 //    turn_right(turn_angle);
 //    Serial.println("Avoided Obstical");
 //  }
-//  else(){ //no statement was called
+  else{ //no statement was called
 //    motor_State = BRAKE;
 //    Motor_Cmd(motor_State, 0);
-//    Serial.println("Fall-through Error");
-//  }
+    Serial.println("Fall-through Error");
+  }
 }
 
 

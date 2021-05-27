@@ -23,23 +23,23 @@ const int EN_PIN_1 = A0; //TODO:: check what these pins alter on the motor shiel
 const int EN_PIN_2 = A1; //TODO:: check what these pins alter on the motor shield!
 
 char readString[4];
-//-------------------------------------LIDAR-----------------------------------------------------
-#include<SoftwareSerial.h>
-// soft serial port header file
-SoftwareSerial Serial1(2,3); // define the soft serial port as Serial1, pin2 as RX, and pin3 as TX
-/*For Arduino board with multiple serial ports such as DUE board, comment out the above two codes, and directly use Serial1 port*/
-int dist;// LiDAR actually measured distance value
-int strength;// LiDAR signal strength
-int check;// check numerical value storage
-int uart[9];// store data measured by LiDAR
-const int HEADER=0x59;// data package frame header
+////-------------------------------------LIDAR-----------------------------------------------------
+//#include<SoftwareSerial.h>
+//// soft serial port header file
+//SoftwareSerial Serial1(2,3); // define the soft serial port as Serial1, pin2 as RX, and pin3 as TX
+///*For Arduino board with multiple serial ports such as DUE board, comment out the above two codes, and directly use Serial1 port*/
+//int dist;// LiDAR actually measured distance value
+//int strength;// LiDAR signal strength
+//int check;// check numerical value storage
+//int uart[9];// store data measured by LiDAR
+//const int HEADER=0x59;// data package frame header
 //----------------------------------Flying Fish--------------------------------------------------
-const int L_SENS_LEFT_PIN = 4; // Left Line Sensor
+const int L_SENS_LEFT_PIN = 9; // Left Line Sensor //flipped
 const int L_SENS_MID_PIN = 6; // Middle Line Sensor
-const int L_SENS_RIGHT_PIN = 9; // Right Line Sensor
+const int L_SENS_RIGHT_PIN = 4; // Right Line Sensor//flipped
 
-const int S_SENS_LEFT_PIN = 10; // Left Side Sensor
-const int S_SENS_RIGHT_PIN = 11; // Right Side Sensor
+//const int S_SENS_LEFT_PIN = 10; // Left Side Sensor
+//const int S_SENS_RIGHT_PIN = 11; // Right Side Sensor
 //------------------------------------Steering---------------------------------------------------
 const int STEER_SERVO_PIN = A2;
 Servo Servo1;
@@ -47,14 +47,16 @@ const int turn_angle = 5;
 const int turn_delay = 50;
 int servo_angle = 108; //current steering direction of vehicle
 
-
+//--------------------------------------SONIC----------------------------------------------------
+int trigPin = 11;    // TRIG pin
+int echoPin = 10;    // ECHO pin
 
 //===============================================================================================
 //-------------------------------------SET UP----------------------------------------------------
 //===============================================================================================
 void setup() {
-  Serial.begin(74880);
-  Serial1.begin(115200); //Lidar & 9dof **(if 9dof is problematic try switching it to 9600)**
+  Serial.begin(9600);
+  //Serial1.begin(115200); //Lidar & 9dof **(if 9dof is problematic try switching it to 9600)**
 
 //-------------------------------------9dof------------------------------------------------------  
 //  WIRE_PORT.begin();
@@ -94,103 +96,117 @@ void setup() {
   pinMode(L_SENS_MID_PIN, INPUT); 
   pinMode(L_SENS_RIGHT_PIN, INPUT); 
 
-  pinMode(S_SENS_LEFT_PIN, INPUT); 
-  pinMode(S_SENS_RIGHT_PIN, INPUT); 
+//  pinMode(S_SENS_LEFT_PIN, INPUT); 
+//  pinMode(S_SENS_RIGHT_PIN, INPUT); 
 //------------------------------------Steering---------------------------------------------------
   pinMode(STEER_SERVO_PIN, OUTPUT); 
   Servo1.attach(STEER_SERVO_PIN); 
+
+  Servo1.write(118);
+
+//--------------------------------------SONIC----------------------------------------------------
+  // configure the trigger pin to output mode
+  pinMode(trigPin, OUTPUT);
+  // configure the echo pin to input mode
+  pinMode(echoPin, INPUT); 
 }
 //================================================================================================
 //--------------------------------------LOOP------------------------------------------------------
 //================================================================================================
-void loop() {
-//Servo1.write(50); //most left
-//delay(1000);
-//
-//Servo1.write(150); //most right
-//delay(1000);
-//
-//Servo1.write(servo_angle); //straight
-//delay(1000);
+void loop() { 
+  if(check_SONIC()<=30.0){ //avoid obstical
+    Serial.println("Avoiding Obstical...");
+    Motor_Cmd(motor_State, 35); //slow down
+      
+    Servo1.write(138); //turn right
+//    delay(turn_delay);
+    while(check_SONIC()<=30.0);
+    Servo1.write(103);
+    Servo1.write(133);
+    Servo1.write(108);
+    
+   // check_passed();
+   // delay(1000); //passed
+   int i=0;
+   while(i<1000){
+    i++;
+   }
 
-//int left = digitalRead(L_SENS_LEFT_PIN);
-//Serial.print("left: ");
-//Serial.println(left);
-//int mid = digitalRead(L_SENS_MID_PIN);
-//Serial.print("mid: ");
-//Serial.println(mid);
-//int right = digitalRead(L_SENS_RIGHT_PIN);
-//Serial.print("right: ");
-//Serial.println(right);
+    Servo1.write(98); //turn left
+    while(digitalRead(L_SENS_LEFT_PIN)==HIGH);
+    Servo1.write(103);
+    Servo1.write(133);
+    Servo1.write(118);
+  }
 
-//int dista = check_LIDAR();
-//Serial.print("dist: ");
-//Serial.println(dista);
-//delay(10);
-
-//  motor_State = FORWARD;
-//  Motor_Cmd(motor_State, 45);
-//  delay(1000);
-//  Motor_Cmd(motor_State, 35);
-//  delay(6000);
-//  Motor_Cmd(motor_State, 20);
-//  delay(5000);
-//  Motor_Cmd(motor_State, 45);
-//  delay(1000);
-//  
-//  Motor_Cmd(motor_State, 45);
-//  delay(1000);
-//  Motor_Cmd(motor_State, 50);
-//  delay(1000);
-//  Motor_Cmd(motor_State, 60);
-//  delay(1000);
-//  Motor_Cmd(motor_State, 26);
-//
-//  Serial.println("Stop/Waiting");
-//  motor_State = BRAKE;
-//  Motor_Cmd(motor_State, 0);
-//  delay(1000);
-//  
-//  
-  if(digitalRead(L_SENS_LEFT_PIN)==HIGH&&digitalRead(L_SENS_MID_PIN)==LOW&&digitalRead(L_SENS_RIGHT_PIN)==HIGH){// && check_LIDAR()>50){ //normal driving speed
+  else if(digitalRead(L_SENS_LEFT_PIN)==HIGH&&digitalRead(L_SENS_MID_PIN)==LOW&&digitalRead(L_SENS_RIGHT_PIN)==HIGH){// && check_SONIC()>40){ //normal driving speed
+    Servo1.write(103);
+    Servo1.write(133);
+    Servo1.write(118);
     motor_State = FORWARD;
     Motor_Cmd(motor_State, 50);
   }
-  else if(digitalRead(L_SENS_LEFT_PIN)==LOW&&digitalRead(L_SENS_MID_PIN)==LOW&&digitalRead(L_SENS_RIGHT_PIN)==LOW){// && check_LIDAR()>50){ //reached end of race
+  else if(digitalRead(L_SENS_LEFT_PIN)==LOW&&digitalRead(L_SENS_MID_PIN)==LOW&&digitalRead(L_SENS_RIGHT_PIN)==LOW){// && check_SONIC()>40){ //reached end of race
     motor_State = BRAKE;
     Motor_Cmd(motor_State, 0);
     Serial.println("CAR Stop");
   }
-  else if(digitalRead(L_SENS_LEFT_PIN)==LOW&&digitalRead(L_SENS_MID_PIN)==HIGH&&digitalRead(L_SENS_RIGHT_PIN)==HIGH){// && check_LIDAR()>50){ //too right
-    Motor_Cmd(motor_State, 26); //slow down
-    turn_left(turn_angle);
-    Serial.println("Turn Left");
+  else if(digitalRead(L_SENS_LEFT_PIN)==LOW&&digitalRead(L_SENS_MID_PIN)==HIGH&&digitalRead(L_SENS_RIGHT_PIN)==HIGH){// && check_SONIC()>40){ //too right
+    Motor_Cmd(motor_State, 35);
+    Servo1.write(88); //turn left
+    
+    while(digitalRead(L_SENS_MID_PIN)==HIGH);
+    Servo1.write(133);
+    Servo1.write(118);
+    Servo1.write(148);
+    //Serial.println("Turn Left");
   }
-  else if(digitalRead(L_SENS_LEFT_PIN)==HIGH&&digitalRead(L_SENS_MID_PIN)==HIGH&&digitalRead(L_SENS_RIGHT_PIN)==LOW){// && check_LIDAR()>50){ //too left
-    Motor_Cmd(motor_State, 26); //slow down
-    turn_right(turn_angle);
-    Serial.println("Turn Right");
+  else if(digitalRead(L_SENS_LEFT_PIN)==HIGH&&digitalRead(L_SENS_MID_PIN)==HIGH&&digitalRead(L_SENS_RIGHT_PIN)==LOW){// && check_SONIC()>40){ //too left
+    Motor_Cmd(motor_State, 35);
+    Servo1.write(148); //turn right
+    
+    while(digitalRead(L_SENS_MID_PIN)==HIGH);
+    Servo1.write(103);
+    Servo1.write(118);
+    Servo1.write(88);
+    //Serial.println("Turn Right");
   }
-//  else if(check_LIDAR()<=50){ //avoid obstical
-//    Serial.println("Avoiding Obstical...");
-//    Motor_Cmd(motor_State, 26); //slow down
-//      
-//    turn_right(turn_angle);
-//    delay(turn_delay);
-//    turn_left(turn_angle);
-//    
-//    check_passed();
-//
-//    turn_left(turn_angle);
-//    while(digitalRead(L_SENS_LEFT_PIN)!=HIGH);
-//    turn_right(turn_angle);
-//    Serial.println("Avoided Obstical");
-//  }
-  else{ //no statement was called
+  else if(digitalRead(L_SENS_LEFT_PIN)==HIGH&&digitalRead(L_SENS_MID_PIN)==HIGH&&digitalRead(L_SENS_RIGHT_PIN)==HIGH){// && check_SONIC()>40){ //reached end of race
+   Motor_Cmd(motor_State, 30);
+    Servo1.write(158);
+    while(digitalRead(L_SENS_LEFT_PIN)==HIGH);
+
+    Servo1.write(103);
+    Servo1.write(133);
+    Servo1.write(118);
+  }
+  
+//  else{ //no statement was called
 //    motor_State = BRAKE;
 //    Motor_Cmd(motor_State, 0);
-    Serial.println("Fall-through Error");
-  }
+//    Serial.println("Fall-through Error");
+//  }
+
+
+
+
+
+//Servo1.write(108);
+//Serial.println(108);
+//delay(1000);
+//Servo1.write(98);
+//Serial.println(98);
+//delay(500);
+//Servo1.write(118);
+//Serial.println(118);
+//delay(1000);
+//Servo1.write(160);
+//Serial.println(160);
+//delay(500);
+//Servo1.write(50);
+//Serial.println(50);
+//delay(2000);
+
 }
 
 
@@ -210,39 +226,25 @@ void Motor_Cmd(int DIR, int PWM)//Function that writes to the motor
   }
   analogWrite(PWM_MOTOR_PIN, PWM); 
 }
+float check_SONIC(){
+  float duration_us, distance_cm;
+    // generate 10-microsecond pulse to TRIG pin
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
 
-int check_LIDAR()
-{
-  if (Serial1.available())//check whether the serial port has data input
-  {
-    if(Serial1.read()==HEADER)// determine data package frame header 0x59
-    {
-      uart[0]=HEADER;
-      if(Serial1.read()==HEADER)//determine data package frame header 0x59
-      {
-        uart[1]=HEADER;
-        for(int i=2;i<9;i++)// store data to array
-        {
-          uart[i]=Serial1.read();
-        }
-        check=uart[0]+uart[1]+uart[2]+uart[3]+uart[4]+uart[5]+uart[6]+uart[7];
-        if(uart[8]==(check&0xff))// check the received data as per protocols
-        {
-          dist=uart[2]+uart[3]*256;// calculate distance value
-          strength=uart[4]+uart[5]*256;// calculate signal strength value
-          
-//          Serial.print("[Lidar] dist = ");
-//          Serial.print(dist);// output LiDAR tests distance value
-//          Serial.print('\t');
-//          Serial.print("strength = ");
-//          Serial.print(strength);// output signal strength value
-//          Serial.print('\n');
+  // measure duration of pulse from ECHO pin
+  duration_us = pulseIn(echoPin, HIGH);
 
-          return dist;
-        }
-      }
-    }
-  }
+  // calculate the distance
+  distance_cm = 0.017 * duration_us;
+
+  // print the value to Serial Monitor
+  Serial.print("distance: ");
+  Serial.print(distance_cm);
+  Serial.println(" cm");
+
+  return distance_cm;
 }
 void check_9DOF()
 {
@@ -261,27 +263,13 @@ void check_9DOF()
 //-------------------------------STEER Functions-------------------------------------------------
 //===============================================================================================
 
-void turn_right(int degree){
-  int new_angle = servo_angle+degree;
-  
-//  for(int pos=servo_angle; pos<=new_angle; pos++){
-//    digitalWrite(STEER_SERVO_PIN, pos);
-//    delay(15);
-//  }
-
-  Servo1.write(new_angle);
-  
-  servo_angle = new_angle;
-}
 void turn_left(int degree){
-  int new_angle = servo_angle-degree;
-
-//  for(int pos=servo_angle; pos>=new_angle; pos--){
-//    digitalWrite(STEER_SERVO_PIN, pos);
-//    delay(15);
-//  }
-  Servo1.write(new_angle);
-  servo_angle = new_angle;
+  servo_angle = servo_angle+degree;
+  Servo1.write(servo_angle);
+}
+void turn_right(int degree){
+  servo_angle = servo_angle-degree;
+  Servo1.write(servo_angle);
 }
 void turn_straight(){
   servo_angle = 108;
@@ -290,10 +278,10 @@ void turn_straight(){
 //===============================================================================================
 //------------------------------OBSTICAL Functions-----------------------------------------------
 //===============================================================================================
-bool check_passed(){ //only works for right-avoition
-  if(digitalRead(S_SENS_LEFT_PIN)==HIGH) return true;
-  else return false;
-}
+//bool check_passed(){ //only works for right-avoition
+//  if(digitalRead(S_SENS_LEFT_PIN)==HIGH) return true;
+//  else return false;
+//}
 bool check_obstical(){
  //if(check_LIDAR()<=20) return true;
  //else return false;
@@ -388,7 +376,7 @@ void follow_line(){
     delay(turn_delay);
     turn_left(turn_angle);
     
-    check_passed();
+    //check_passed();
 
     turn_left(turn_angle);
     while(digitalRead(L_SENS_LEFT_PIN)!=HIGH);
@@ -408,7 +396,39 @@ void follow_line(){
 //===============================================================================================
 //--------------------------------------TRASH----------------------------------------------------
 //===============================================================================================
-
+//int check_LIDAR()
+//{
+//  if (Serial1.available())//check whether the serial port has data input
+//  {
+//    if(Serial1.read()==HEADER)// determine data package frame header 0x59
+//    {
+//      uart[0]=HEADER;
+//      if(Serial1.read()==HEADER)//determine data package frame header 0x59
+//      {
+//        uart[1]=HEADER;
+//        for(int i=2;i<9;i++)// store data to array
+//        {
+//          uart[i]=Serial1.read();
+//        }
+//        check=uart[0]+uart[1]+uart[2]+uart[3]+uart[4]+uart[5]+uart[6]+uart[7];
+//        if(uart[8]==(check&0xff))// check the received data as per protocols
+//        {
+//          dist=uart[2]+uart[3]*256;// calculate distance value
+//          strength=uart[4]+uart[5]*256;// calculate signal strength value
+//          
+////          Serial.print("[Lidar] dist = ");
+////          Serial.print(dist);// output LiDAR tests distance value
+////          Serial.print('\t');
+////          Serial.print("strength = ");
+////          Serial.print(strength);// output signal strength value
+////          Serial.print('\n');
+//
+//          return dist;
+//        }
+//      }
+//    }
+//  }
+//}
 //---------------------------9dof Serial_print Data----------------------------------------------
 //void printPaddedInt16b( int16_t val ){
 //  if(val > 0){
